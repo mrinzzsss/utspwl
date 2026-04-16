@@ -1,0 +1,112 @@
+@extends('layouts.app')
+@section('title', 'Tambah Tournament — MPL PWL')
+
+@section('content')
+<div class="max-w-2xl mx-auto px-4 py-12">
+
+    {{-- Header --}}
+    <div class="mb-8">
+        <a href="{{ route('tournaments.index') }}"
+           class="inline-flex items-center gap-2 text-slate-400 hover:text-purple-400 text-sm transition mb-4">
+            <i class="fa fa-arrow-left"></i> Kembali ke Tournament
+        </a>
+        <h1 class="text-3xl font-black text-white">Tambah Tournament</h1>
+        <p class="text-slate-400 text-sm mt-1">Buat kompetisi baru MPL PWL</p>
+    </div>
+
+    {{-- Card --}}
+    <div class="card-glass rounded-2xl p-8">
+        <form method="POST" action="{{ route('tournaments.store') }}" enctype="multipart/form-data" class="space-y-6">
+            @csrf
+
+            {{-- Nama --}}
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-1.5">Nama Tournament <span class="text-red-400">*</span></label>
+                <input type="text" name="nama" value="{{ old('nama') }}" placeholder="MPL Season 14"
+                    class="w-full rounded-xl px-4 py-2.5 text-sm bg-white/5 border @error('nama') border-red-500/60 @else border-white/10 @enderror text-slate-200 placeholder-slate-500 focus:outline-none focus:border-purple-500 focus:bg-purple-500/5 transition">
+                @error('nama') <p class="text-red-400 text-xs mt-1"><i class="fa fa-triangle-exclamation mr-1"></i>{{ $message }}</p> @enderror
+            </div>
+
+            {{-- Logo --}}
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-1.5">Logo Tournament</label>
+                <div class="relative">
+                    <input type="file" name="logo" id="logoInput" accept="image/*" onchange="previewImage(this)"
+                        class="w-full rounded-xl px-4 py-2.5 text-sm bg-white/5 border border-white/10 text-slate-400
+                               file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold
+                               file:bg-purple-600 file:text-white hover:file:bg-purple-700 file:cursor-pointer
+                               focus:outline-none focus:border-purple-500 transition">
+                </div>
+                <img id="logoPreview" src="" alt="" class="hidden mt-3 w-20 h-20 rounded-xl object-cover border border-white/10">
+                @error('logo') <p class="text-red-400 text-xs mt-1"><i class="fa fa-triangle-exclamation mr-1"></i>{{ $message }}</p> @enderror
+            </div>
+
+            {{-- Format & Status (2 col) --}}
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1.5">Format <span class="text-red-400">*</span></label>
+                    <select name="format"
+                        class="w-full rounded-xl px-4 py-2.5 text-sm bg-white/5 border @error('format') border-red-500/60 @else border-white/10 @enderror text-slate-200 focus:outline-none focus:border-purple-500 transition">
+                        <option value="">-- Pilih --</option>
+                        <option value="single_elimination" {{ old('format') == 'single_elimination' ? 'selected' : '' }}>Single Elimination</option>
+                        <option value="round_robin"        {{ old('format') == 'round_robin'        ? 'selected' : '' }}>Round Robin</option>
+                    </select>
+                    @error('format') <p class="text-red-400 text-xs mt-1">{{ $message }}</p> @enderror
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1.5">Status <span class="text-red-400">*</span></label>
+                    <select name="status"
+                        class="w-full rounded-xl px-4 py-2.5 text-sm bg-white/5 border @error('status') border-red-500/60 @else border-white/10 @enderror text-slate-200 focus:outline-none focus:border-purple-500 transition">
+                        <option value="">-- Pilih --</option>
+                        <option value="upcoming" {{ old('status') == 'upcoming' ? 'selected' : '' }}>Upcoming</option>
+                        <option value="ongoing"  {{ old('status') == 'ongoing'  ? 'selected' : '' }}>Ongoing</option>
+                        <option value="finished" {{ old('status') == 'finished' ? 'selected' : '' }}>Finished</option>
+                    </select>
+                    @error('status') <p class="text-red-400 text-xs mt-1">{{ $message }}</p> @enderror
+                </div>
+            </div>
+
+            {{-- Tanggal (2 col) --}}
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1.5">Tanggal Mulai <span class="text-red-400">*</span></label>
+                    <input type="date" name="mulai" value="{{ old('mulai') }}"
+                        class="w-full rounded-xl px-4 py-2.5 text-sm bg-white/5 border @error('mulai') border-red-500/60 @else border-white/10 @enderror text-slate-200 focus:outline-none focus:border-purple-500 transition">
+                    @error('mulai') <p class="text-red-400 text-xs mt-1">{{ $message }}</p> @enderror
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1.5">Tanggal Selesai <span class="text-red-400">*</span></label>
+                    <input type="date" name="selesai" value="{{ old('selesai') }}"
+                        class="w-full rounded-xl px-4 py-2.5 text-sm bg-white/5 border @error('selesai') border-red-500/60 @else border-white/10 @enderror text-slate-200 focus:outline-none focus:border-purple-500 transition">
+                    @error('selesai') <p class="text-red-400 text-xs mt-1">{{ $message }}</p> @enderror
+                </div>
+            </div>
+
+            {{-- Actions --}}
+            <div class="flex items-center gap-3 pt-2">
+                <button type="submit"
+                    class="bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm px-6 py-2.5 rounded-xl transition">
+                    <i class="fa fa-plus mr-1.5"></i> Simpan Tournament
+                </button>
+                <a href="{{ route('tournaments.index') }}"
+                   class="text-slate-400 hover:text-slate-200 text-sm px-4 py-2.5 rounded-xl border border-white/10 hover:border-white/20 transition">
+                    Batal
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function previewImage(input) {
+        const preview = document.getElementById('logoPreview');
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = e => { preview.src = e.target.result; preview.classList.remove('hidden'); };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+</script>
+@endsection
