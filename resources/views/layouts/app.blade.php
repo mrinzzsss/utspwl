@@ -3,59 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'MPL PWL')</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>@yield('title', 'MPL Lite')</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #0a0a0f; color: #e2e8f0; }
-        .gradient-text { background: linear-gradient(135deg, #6366f1, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .card-glass { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(12px); }
-        .nav-link { transition: color .2s; }
-        .nav-link:hover { color: #a855f7; }
+        :root {
+            --mpl-blue: #0f2b5b;
+            --mpl-gold: #f5a623;
+            --mpl-dark: #0a1a38;
+        }
+        body { background-color: #f4f6fb; font-family: 'Segoe UI', sans-serif; }
+        .navbar-brand span { color: var(--mpl-gold); }
+        .navbar { background: var(--mpl-dark) !important; }
+        .sidebar {
+            min-height: calc(100vh - 56px);
+            background: var(--mpl-blue);
+            color: #fff;
+        }
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.75);
+            padding: .5rem 1rem;
+            border-radius: 6px;
+            margin-bottom: 2px;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background: var(--mpl-gold);
+            color: #0a1a38;
+            font-weight: 600;
+        }
+        .sidebar .nav-link i { margin-right: 8px; }
+        .main-content { padding: 2rem; }
+        .card { border: none; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,.06); }
+        .card-header { border-radius: 12px 12px 0 0 !important; }
+        .table thead th { background: var(--mpl-blue); color: #fff; border: none; }
+        .btn-primary { background: var(--mpl-blue); border-color: var(--mpl-blue); }
+        .btn-primary:hover { background: var(--mpl-dark); }
+        .badge-manajemen { background: #1e3a8a; }
+        .badge-wasit { background: #065f46; }
+        .badge-player { background: #92400e; }
     </style>
+    @stack('styles')
 </head>
-<body class="min-h-screen">
+<body>
 
-    {{-- Navbar --}}
-    <nav class="sticky top-0 z-50 border-b border-white/10" style="background:rgba(10,10,15,0.9);backdrop-filter:blur(16px)">
-        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-            <a href="{{ route('home') }}" class="text-xl font-black gradient-text tracking-widest">MPL PWL</a>
-            <div class="flex items-center gap-6 text-sm font-medium text-slate-300">
-                <a href="{{ route('home') }}" class="nav-link">Home</a>
-                <a href="{{ route('tournaments.index') }}" class="nav-link">Tournaments</a>
+{{-- Navbar --}}
+<nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container-fluid px-4">
+        <a class="navbar-brand fw-bold" href="{{ route('home') }}">
+            <i class="bi bi-trophy-fill text-warning me-2"></i>MPL <span>LITE</span>
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarMain">
+            <ul class="navbar-nav ms-auto align-items-center gap-2">
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="{{ route('home') }}">
+                        <i class="bi bi-house-fill"></i> Home
+                    </a>
+                </li>
                 @auth
-                    <span class="text-purple-400 text-xs border border-purple-500/30 px-2 py-1 rounded-full">
-                        {{ auth()->user()->role }}
-                    </span>
-                    <form method="POST" action="{{ route('logout') }}" class="inline">
-                        @csrf
-                        <button class="nav-link text-red-400">Logout</button>
-                    </form>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle text-white d-flex align-items-center gap-2" href="#" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle fs-5"></i>
+                            <span>{{ auth()->user()->name }}</span>
+                            <span class="badge bg-warning text-dark text-uppercase small">{{ auth()->user()->role }}</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            @if(auth()->user()->role === 'manajemen')
+                                <li><a class="dropdown-item" href="{{ route('manajemen.dashboard') }}"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a></li>
+                            @elseif(auth()->user()->role === 'wasit')
+                                <li><a class="dropdown-item" href="{{ route('wasit.dashboard') }}"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a></li>
+                            @endif
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <form action="{{ route('logout') }}" method="POST">
+                                    @csrf
+                                    <button class="dropdown-item text-danger">
+                                        <i class="bi bi-box-arrow-right me-2"></i>Logout
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </li>
                 @else
-                    <a href="{{ route('login') }}" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-1.5 rounded-lg text-xs transition">Login</a>
+                    <li class="nav-item">
+                        <a class="btn btn-warning btn-sm px-3" href="{{ route('login') }}">
+                            <i class="bi bi-box-arrow-in-right me-1"></i>Login
+                        </a>
+                    </li>
                 @endauth
-            </div>
+            </ul>
         </div>
-    </nav>
+    </div>
+</nav>
 
-    {{-- Flash messages --}}
-    @if(session('success'))
-        <div class="max-w-7xl mx-auto px-4 mt-4">
-            <div class="bg-green-500/10 border border-green-500/30 text-green-400 px-4 py-3 rounded-lg text-sm">
-                ✓ {{ session('success') }}
-            </div>
+{{-- Content area --}}
+@if(isset($withSidebar) && $withSidebar)
+<div class="container-fluid p-0">
+    <div class="row g-0">
+        <div class="col-md-2 sidebar py-3 px-2">
+            @yield('sidebar')
         </div>
-    @endif
-
-    {{-- Main content --}}
-    <main>
+        <div class="col-md-10 main-content">
+            @include('components.alerts')
+            @yield('content')
+        </div>
+    </div>
+</div>
+@else
+<div class="container-fluid">
+    <div class="main-content">
+        @include('components.alerts')
         @yield('content')
-    </main>
+    </div>
+</div>
+@endif
 
-    {{-- Footer --}}
-    <footer class="border-t border-white/10 mt-20 py-8 text-center text-slate-500 text-sm">
-        © {{ date('Y') }} MPL PWL &mdash; Mobile Legends Professional League
-    </footer>
-
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+@stack('scripts')
 </body>
 </html>

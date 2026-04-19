@@ -2,28 +2,34 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Model;
 
 class Standing extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'tournament_id',
-        'nama_tim',
-        'logo_tim',
-        'menang',
-        'kalah',
-        'poin',
+        'team_id',
+        'season',
+        'played',
+        'wins',
+        'losses',
+        'points',
     ];
 
-    // ─── Relationships ───────────────────────────────────────────
+    // ── Relasi ───────────────────────────────────
 
-    /** Standing ini milik tournament mana */
-    public function tournament(): BelongsTo
+    public function team()
     {
-        return $this->belongsTo(Tournament::class, 'tournament_id');
+        return $this->belongsTo(Team::class);
+    }
+
+    // ── Scope ────────────────────────────────────
+
+    /** Ambil klasemen untuk season tertentu, diurutkan berdasarkan poin */
+    public function scopeSeason($query, int $year)
+    {
+        return $query->where('season', $year)->orderByDesc('points');
     }
 }

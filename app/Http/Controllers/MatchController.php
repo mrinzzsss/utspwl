@@ -2,88 +2,130 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Matchs;
-use App\Models\Tournament;
-use App\Models\Player;
-use App\Models\Standing;
+use App\Models\GameMatch;
+use App\Models\Team;
 use Illuminate\Http\Request;
 
 class MatchController extends Controller
 {
-    public function create(Tournament $tournament)
+    /**
+     * FIX: index() sekarang mendeteksi role user dan return view yang tepat.
+     * - manajemen → view('manajemen.matches.index')
+     * - wasit     → view('wasit.matches')
+     */
+    public function index(Request $request)
     {
-        $players = $tournament->players()->orderBy('nama_tim')->get();
-        return view('pages.matches.create', compact('tournament', 'players'));
-    }
-
-    public function store(Request $request, Tournament $tournament)
-    {
-        $validated = $request->validate([
-            'tim_a'          => 'required|string|max:255',
-            'tim_b'          => 'required|string|max:255|different:tim_a',
-            'jadwal_tanding' => 'required|date',
-        ]);
-
-        $validated['tournament_id'] = $tournament->id;
-        $validated['status'] = 'pending';
-
-        Matchs::create($validated);
-        return redirect()->route('tournaments.show', $tournament)->with('success', 'Match berhasil dijadwalkan!');
-    }
-
-    /** Wasit input hasil match */
-    public function editHasil(Matchs $match)
-    {
-        $players = $match->tournament->players()
-            ->whereIn('nama_tim', [$match->tim_a, $match->tim_b])
+        $matches = GameMatch::with('homeTeam', 'awayTeam')
+            ->when($request->status, fn($q) => $q->where('status', $request->status))
+            ->orderBy('match_date')
             ->get();
 
-        return view('pages.matches.hasil', compact('match', 'players'));
+        // FIX: Wasit dapat view wasit, manajemen dapat view manajemen
+        $view = auth()->user()?->role === 'wasit'
+            ? 'wasit.matches'
+            : 'manajemen.matches.index';
+
+        return view($view, compact('matches'));
     }
 
-    public function updateHasil(Request $request, Matchs $match)
+    public function create()
     {
+        $this->authorizeRoles(['manajemen']);
+        $teams = Team::orderBy('name')->get();
+        return view('manajemen.matches.create', compact('teams'));
+    }
+
+    public function store(Request $request)
+    {
+        $this->authorizeRoles(['manajemen']);
+
         $validated = $request->validate([
-            'skor_a' => 'required|integer|min:0',
-            'skor_b' => 'required|integer|min:0',
-            'mvp_id' => 'nullable|exists:players,id',
+            'home_team_id' => 'required|exists:teams,id|different:away_team_id',
+            'away_team_id' => 'required|exists:teams,id',
+            'match_date'   => 'required|date',
+            'venue'        => 'nullable|string',
         ]);
 
-        $validated['status'] = 'selesai';
+        GameMatch::create($validated + ['status' => 'scheduled']);
+        return redirect()->route('manajemen.matches.index')
+            ->with('success', 'Pertandingan berhasil dijadwalkan.');
+    }
+
+    /**
+     * FIX: show() juga deteksi role untuk view yang tepat
+     */
+    public function show(GameMatch $match)
+    {
+        $match->load('homeTeam', 'awayTeam');
+
+        $view = auth()->user()?->role === 'wasit'
+            ? 'wasit.match-show'
+            : 'manajemen.matches.show';
+
+        return view($view, compact('match'));
+    }
+
+    public function edit(GameMatch $match)
+    {
+        $this->authorizeRoles(['manajemen']);
+        $teams = Team::orderBy('name')->get();
+        return view('manajemen.matches.edit', compact('match', 'teams'));
+    }
+
+    public function update(Request $request, GameMatch $match)
+    {
+        $this->authorizeRoles(['manajemen']);
+
+        $validated = $request->validate([
+            'match_date' => 'sometimes|date',
+            'venue'      => 'nullable|string',
+            'status'     => 'sometimes|in:scheduled,ongoing,finished,cancelled',
+        ]);
+
         $match->update($validated);
-
-        // Update standings otomatis
-        $this->updateStandings($match);
-
-        return redirect()->route('tournaments.show', $match->tournament_id)
-            ->with('success', 'Hasil match berhasil disimpan!');
+        return redirect()->route('manajemen.matches.index')
+            ->with('success', 'Pertandingan berhasil diperbarui.');
     }
 
-    public function destroy(Matchs $match)
+    public function destroy(GameMatch $match)
     {
-        $tournamentId = $match->tournament_id;
+        $this->authorizeRoles(['manajemen']);
         $match->delete();
-        return redirect()->route('tournaments.show', $tournamentId)->with('success', 'Match berhasil dihapus!');
+        return redirect()->route('manajemen.matches.index')
+            ->with('success', 'Pertandingan berhasil dihapus.');
     }
 
-    /** Auto-update standings setelah hasil diinput */
-    private function updateStandings(Matchs $match): void
+    // ── Wasit: input skor ────────────────────────
+
+    public function inputScoreForm(GameMatch $match)
     {
-        $pemenang = $match->pemenang; // pakai accessor dari model
-        if (!$pemenang || $pemenang === 'Draw') return;
+        $this->authorizeRoles(['wasit']);
+        abort_if($match->status === 'finished', 422, 'Match sudah selesai');
+        $match->load('homeTeam', 'awayTeam');
+        return view('wasit.input-score', compact('match'));
+    }
 
-        $kalah = ($pemenang === $match->tim_a) ? $match->tim_b : $match->tim_a;
+    public function inputScore(Request $request, GameMatch $match)
+    {
+        $this->authorizeRoles(['wasit']);
+        abort_if($match->status === 'finished', 422, 'Match sudah selesai');
 
-        // Update tim menang
-        Standing::updateOrCreate(
-            ['tournament_id' => $match->tournament_id, 'nama_tim' => $pemenang],
-            ['menang' => \DB::raw('menang + 1'), 'poin' => \DB::raw('poin + 2')]
-        );
+        $validated = $request->validate([
+            'home_score' => 'required|integer|min:0',
+            'away_score' => 'required|integer|min:0',
+        ]);
 
-        // Update tim kalah
-        Standing::updateOrCreate(
-            ['tournament_id' => $match->tournament_id, 'nama_tim' => $kalah],
-            ['kalah' => \DB::raw('kalah + 1')]
-        );
+        $match->update([
+            ...$validated,
+            'status' => 'finished',
+        ]);
+
+        return redirect()->route('wasit.dashboard')
+            ->with('success', 'Skor berhasil diinput.');
+    }
+
+    private function authorizeRoles(array $roles): void
+    {
+        abort_if(!in_array(auth()->user()->role, $roles), 403, 'Akses ditolak');
     }
 }

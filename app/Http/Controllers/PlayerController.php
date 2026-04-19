@@ -3,63 +3,87 @@
 namespace App\Http\Controllers;
 
 use App\Models\Player;
-use App\Models\Tournament;
+use App\Models\Team;
 use Illuminate\Http\Request;
 
 class PlayerController extends Controller
 {
-    public function create(Tournament $tournament)
+    public function index(Request $request)
     {
-        return view('pages.players.create', compact('tournament'));
+        $players = Player::with('team')
+            ->when($request->team_id, fn($q) => $q->where('team_id', $request->team_id))
+            ->get();
+        $teams = Team::orderBy('name')->get();
+
+        return view('manajemen.players.index', compact('players', 'teams'));
     }
 
-    public function store(Request $request, Tournament $tournament)
+    public function create()
     {
+        $this->authorizeRole('manajemen');
+        $teams = Team::orderBy('name')->get();
+        return view('manajemen.players.create', compact('teams'));
+    }
+
+    public function store(Request $request)
+    {
+        $this->authorizeRole('manajemen');
+
         $validated = $request->validate([
-            'nama_tim'  => 'required|string|max:255',
-            'logo_tim'  => 'nullable|image|max:2048',
-            'ign'       => 'required|string|max:255|unique:players,ign',
-            'nama_asli' => 'required|string|max:255',
-            'role_game' => 'required|in:jungler,roamer,midlaner,goldlaner,explaner',
+            'team_id'     => 'required|exists:teams,id',
+            'name'        => 'required|string',
+            'role'        => 'nullable|in:EXP,MID,GOLD,ROAM,JUNGLE',
+            'game_id'     => 'nullable|string',
+            'nationality' => 'nullable|string|size:2',
+            'birth_date'  => 'nullable|date',
         ]);
 
-        if ($request->hasFile('logo_tim')) {
-            $validated['logo_tim'] = $request->file('logo_tim')->store('logos/teams', 'public');
-        }
-
-        $validated['tournament_id'] = $tournament->id;
         Player::create($validated);
+        return redirect()->route('manajemen.players.index')
+            ->with('success', 'Pemain berhasil ditambahkan.');
+    }
 
-        return redirect()->route('tournaments.show', $tournament)->with('success', 'Pemain berhasil ditambahkan!');
+    public function show(Player $player)
+    {
+        $player->load('team');
+        return view('manajemen.players.show', compact('player'));
     }
 
     public function edit(Player $player)
     {
-        return view('pages.players.edit', compact('player'));
+        $this->authorizeRole('manajemen');
+        $teams = Team::orderBy('name')->get();
+        return view('manajemen.players.edit', compact('player', 'teams'));
     }
 
     public function update(Request $request, Player $player)
     {
+        $this->authorizeRole('manajemen');
+
         $validated = $request->validate([
-            'nama_tim'  => 'required|string|max:255',
-            'logo_tim'  => 'nullable|image|max:2048',
-            'ign'       => 'required|string|max:255|unique:players,ign,' . $player->id,
-            'nama_asli' => 'required|string|max:255',
-            'role_game' => 'required|in:jungler,roamer,midlaner,goldlaner,explaner',
+            'team_id'     => 'sometimes|exists:teams,id',
+            'name'        => 'sometimes|string',
+            'role'        => 'nullable|in:EXP,MID,GOLD,ROAM,JUNGLE',
+            'game_id'     => 'nullable|string',
+            'nationality' => 'nullable|string|size:2',
+            'birth_date'  => 'nullable|date',
         ]);
 
-        if ($request->hasFile('logo_tim')) {
-            $validated['logo_tim'] = $request->file('logo_tim')->store('logos/teams', 'public');
-        }
-
         $player->update($validated);
-        return redirect()->route('tournaments.show', $player->tournament_id)->with('success', 'Pemain berhasil diupdate!');
+        return redirect()->route('manajemen.players.index')
+            ->with('success', 'Pemain berhasil diperbarui.');
     }
 
     public function destroy(Player $player)
     {
-        $tournamentId = $player->tournament_id;
+        $this->authorizeRole('manajemen');
         $player->delete();
-        return redirect()->route('tournaments.show', $tournamentId)->with('success', 'Pemain berhasil dihapus!');
+        return redirect()->route('manajemen.players.index')
+            ->with('success', 'Pemain berhasil dihapus.');
+    }
+
+    private function authorizeRole(string $role): void
+    {
+        abort_if(auth()->user()->role !== $role, 403, 'Akses ditolak');
     }
 }

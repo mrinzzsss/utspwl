@@ -1,56 +1,70 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\HomeController;
-use App\Http\Controllers\TournamentController;
-use App\Http\Controllers\MatchController;
+use App\Http\Controllers\TeamController;
 use App\Http\Controllers\PlayerController;
-use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\StandingController;
+use App\Http\Controllers\MatchController;
+use App\Http\Controllers\UserController;
 
+/*
+|--------------------------------------------------------------------------
+| MPL Lite — Web Routes
+|--------------------------------------------------------------------------
+|
+| Role akses:
+|   manajemen  → full CRUD semua resource + kelola user
+|   wasit      → read-only + input skor match
+|   player     → hanya halaman publik (home)
+|
+*/
 
-// Login
-Route::middleware('guest')->group(function () {
-    Route::get('/login',    [AuthController::class, 'showLogin'])->name('login');
-    Route::post('/login',   [AuthController::class, 'login']);
-    Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
-    Route::post('/register', [AuthController::class, 'register']);
-});
-Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
-
-
-// PUBLIC ROUTES — Guest bisa akses tanpa login
-
+// ── Halaman Publik ────────────────────────────────────────────────────
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
-// Tournament: list & detail (bracket, jadwal, skor, roster)
-Route::get('/tournaments', [TournamentController::class, 'index'])->name('tournaments.index');
-Route::get('/tournaments/{tournament}', [TournamentController::class, 'show'])->name('tournaments.show');
+// ── Auth ──────────────────────────────────────────────────────────────
+Route::middleware('guest')->group(function () {
+    Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+    Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+});
 
+Route::post('/logout', [AuthController::class, 'logout'])
+    ->name('logout')
+    ->middleware('auth');
 
-// AUTH REQUIRED — Harus login
+// ── Dashboard Manajemen ───────────────────────────────────────────────
+Route::middleware(['auth', 'role:manajemen'])->prefix('manajemen')->name('manajemen.')->group(function () {
 
-Route::middleware(['auth'])->group(function () {
+    Route::get('/dashboard', [HomeController::class, 'manajemenDashboard'])->name('dashboard');
 
-    // Tournament CRUD (Admin)
-    Route::get('/tournaments/create', [TournamentController::class, 'create'])->name('tournaments.create');
-    Route::post('/tournaments', [TournamentController::class, 'store'])->name('tournaments.store');
-    Route::get('/tournaments/{tournament}/edit', [TournamentController::class, 'edit'])->name('tournaments.edit');
-    Route::put('/tournaments/{tournament}', [TournamentController::class, 'update'])->name('tournaments.update');
-    Route::delete('/tournaments/{tournament}', [TournamentController::class, 'destroy'])->name('tournaments.destroy');
+    // Tim
+    Route::resource('teams', TeamController::class);
 
-    // Player CRUD (Admin & Manajemen)
-    Route::get('/tournaments/{tournament}/players/create', [PlayerController::class, 'create'])->name('tournaments.players.create');
-    Route::post('/tournaments/{tournament}/players', [PlayerController::class, 'store'])->name('tournaments.players.store');
-    Route::get('/players/{player}/edit', [PlayerController::class, 'edit'])->name('players.edit');
-    Route::put('/players/{player}', [PlayerController::class, 'update'])->name('players.update');
-    Route::delete('/players/{player}', [PlayerController::class, 'destroy'])->name('players.destroy');
+    // Pemain
+    Route::resource('players', PlayerController::class);
 
-    // Match Schedule (Admin & Manajemen)
-    Route::get('/tournaments/{tournament}/matches/create', [MatchController::class, 'create'])->name('tournaments.matches.create');
-    Route::post('/tournaments/{tournament}/matches', [MatchController::class, 'store'])->name('tournaments.matches.store');
-    Route::delete('/matches/{match}', [MatchController::class, 'destroy'])->name('matches.destroy');
+    // Klasemen
+    Route::resource('standings', StandingController::class)->except(['show']);
 
-    // Match Hasil (Wasit & Admin)
-    Route::get('/matches/{match}/hasil', [MatchController::class, 'editHasil'])->name('matches.hasil');
-    Route::put('/matches/{match}/hasil', [MatchController::class, 'updateHasil'])->name('matches.updateHasil');
+    // Pertandingan
+    Route::resource('matches', MatchController::class);
+
+    // User management
+    Route::resource('users', UserController::class);
+});
+
+// ── Dashboard Wasit ───────────────────────────────────────────────────
+Route::middleware(['auth', 'role:wasit'])->prefix('wasit')->name('wasit.')->group(function () {
+
+    Route::get('/dashboard', [HomeController::class, 'wasitDashboard'])->name('dashboard');
+
+    // Lihat daftar pertandingan (read only)
+    Route::get('/matches', [MatchController::class, 'index'])->name('matches.index');
+    Route::get('/matches/{match}', [MatchController::class, 'show'])->name('matches.show');
+
+    // Input skor
+    Route::get('/matches/{match}/score', [MatchController::class, 'inputScoreForm'])->name('matches.score.form');
+    Route::post('/matches/{match}/score', [MatchController::class, 'inputScore'])->name('matches.score');
 });

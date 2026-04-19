@@ -3,173 +3,180 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login – MPL PWL</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+    <title>Login — MPL Lite</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #0a0a0f; color: #e2e8f0; }
-        .gradient-text { background: linear-gradient(135deg, #6366f1, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .card-glass {
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.08);
-            backdrop-filter: blur(12px);
+        :root {
+            --mpl-blue: #0f2b5b;
+            --mpl-gold: #f5a623;
+            --mpl-dark: #0a1a38;
         }
-        .input-field {
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
-            color: #e2e8f0;
-            transition: border-color .2s, background .2s;
+        body {
+            background: linear-gradient(135deg, var(--mpl-dark) 0%, #1e3a8a 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', sans-serif;
         }
-        .input-field:focus {
-            outline: none;
-            border-color: #a855f7;
-            background: rgba(168,85,247,0.05);
+        .login-wrapper {
+            width: 100%;
+            max-width: 420px;
         }
-        .input-field::placeholder { color: #64748b; }
-        .btn-primary {
-            background: linear-gradient(135deg, #6366f1, #a855f7);
-            transition: opacity .2s, transform .1s;
+        .login-card {
+            background: #fff;
+            border-radius: 20px;
+            padding: 2.5rem 2rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
         }
-        .btn-primary:hover { opacity: .9; transform: translateY(-1px); }
-        .btn-primary:active { transform: translateY(0); }
-        .glow { box-shadow: 0 0 40px rgba(168,85,247,0.15); }
+        .login-logo {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: var(--mpl-blue);
+            letter-spacing: -1px;
+        }
+        .login-logo span { color: var(--mpl-gold); }
+        .login-subtitle { color: #64748b; font-size: .9rem; }
+        .form-control {
+            border-radius: 10px;
+            padding: .65rem 1rem;
+            border: 1.5px solid #e2e8f0;
+            font-size: .95rem;
+        }
+        .form-control:focus {
+            border-color: var(--mpl-blue);
+            box-shadow: 0 0 0 3px rgba(15,43,91,.15);
+        }
+        .input-group-text {
+            border-radius: 10px 0 0 10px;
+            background: #f8fafc;
+            border: 1.5px solid #e2e8f0;
+            border-right: 0;
+            color: #64748b;
+        }
+        .input-group .form-control { border-radius: 0 10px 10px 0; border-left: 0; }
+        .btn-login {
+            background: var(--mpl-blue);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            padding: .75rem;
+            font-weight: 600;
+            font-size: 1rem;
+            width: 100%;
+            transition: background .2s;
+        }
+        .btn-login:hover { background: var(--mpl-dark); color: #fff; }
+        .divider { border-color: #e2e8f0; }
+        .demo-card {
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 1rem;
+            font-size: .82rem;
+            color: #475569;
+        }
+        .demo-card strong { color: var(--mpl-blue); }
     </style>
 </head>
-<body class="min-h-screen flex flex-col">
+<body>
+<div class="login-wrapper">
+    <div class="login-card">
+        {{-- Logo --}}
+        <div class="text-center mb-4">
+            <div class="login-logo">
+                <i class="bi bi-trophy-fill" style="color: var(--mpl-gold)"></i>
+                MPL <span>LITE</span>
+            </div>
+            <p class="login-subtitle mt-1">Mobile Legends Professional League</p>
+        </div>
 
-    {{-- Navbar minimal --}}
-    <nav class="border-b border-white/10" style="background:rgba(10,10,15,0.9)">
-        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-            <a href="{{ route('home') }}" class="text-xl font-black gradient-text tracking-widest">MPL PWL</a>
-            <a href="{{ route('home') }}" class="text-slate-400 hover:text-slate-200 text-sm transition">
-                <i class="fa fa-arrow-left mr-1"></i> Kembali
+        {{-- Alert errors --}}
+        @if($errors->any())
+            <div class="alert alert-danger py-2 rounded-3" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                {{ $errors->first('email') }}
+            </div>
+        @endif
+
+        {{-- Form --}}
+        <form action="{{ route('login.post') }}" method="POST">
+            @csrf
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold small text-secondary">Email</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-envelope-fill"></i></span>
+                    <input type="email" name="email" class="form-control @error('email') is-invalid @enderror"
+                        placeholder="email@domain.com" value="{{ old('email') }}" required autofocus>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold small text-secondary">Password</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
+                    <input type="password" name="password" id="passwordInput"
+                        class="form-control" placeholder="••••••••" required>
+                    <button type="button" class="btn btn-outline-secondary border-start-0"
+                        onclick="togglePassword()" style="border-radius: 0 10px 10px 0; border-color: #e2e8f0;">
+                        <i class="bi bi-eye" id="eyeIcon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="mb-4 d-flex align-items-center justify-content-between">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="remember" id="remember">
+                    <label class="form-check-label small" for="remember">Ingat saya</label>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-login">
+                <i class="bi bi-box-arrow-in-right me-2"></i>Masuk
+            </button>
+        </form>
+
+        <hr class="divider my-4">
+
+        {{-- Demo credentials --}}
+        <div class="demo-card">
+            <div class="fw-semibold mb-2" style="color: var(--mpl-blue);">
+                <i class="bi bi-info-circle me-1"></i>Akun Demo
+            </div>
+            <div class="row g-1">
+                <div class="col-12">
+                    <strong>Manajemen:</strong> manajemen@mpl.id / password
+                </div>
+                <div class="col-12">
+                    <strong>Wasit:</strong> wasit1@mpl.id / password
+                </div>
+                <div class="col-12">
+                    <strong>Player:</strong> r7@mpl.id / password
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mt-3">
+            <a href="{{ route('home') }}" class="text-secondary small">
+                <i class="bi bi-arrow-left me-1"></i>Kembali ke beranda
             </a>
         </div>
-    </nav>
+    </div>
+</div>
 
-    {{-- Main --}}
-    <main class="flex-1 flex items-center justify-center px-4 py-16">
-        <div class="w-full max-w-md">
-
-            {{-- Header --}}
-            <div class="text-center mb-8">
-                <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4"
-                     style="background: linear-gradient(135deg,#6366f1,#a855f7)">
-                    <i class="fa fa-gamepad text-2xl text-white"></i>
-                </div>
-                <h1 class="text-3xl font-black gradient-text">Masuk</h1>
-                <p class="text-slate-400 text-sm mt-1">Login ke akun MPL PWL kamu</p>
-            </div>
-
-            {{-- Alert error --}}
-            @if ($errors->any())
-                <div class="mb-4 bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-xl text-sm">
-                    <i class="fa fa-circle-exclamation mr-2"></i>
-                    {{ $errors->first() }}
-                </div>
-            @endif
-
-            {{-- Flash success --}}
-            @if (session('success'))
-                <div class="mb-4 bg-green-500/10 border border-green-500/30 text-green-400 px-4 py-3 rounded-xl text-sm">
-                    <i class="fa fa-check mr-2"></i> {{ session('success') }}
-                </div>
-            @endif
-
-            {{-- Card --}}
-            <div class="card-glass rounded-2xl p-8 glow">
-                <form method="POST" action="{{ route('login') }}" class="space-y-5">
-                    @csrf
-
-                    {{-- Email --}}
-                    <div>
-                        <label class="block text-sm font-medium text-slate-300 mb-1.5">
-                            Email
-                        </label>
-                        <div class="relative">
-                            <i class="fa fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
-                            <input
-                                type="email"
-                                name="email"
-                                value="{{ old('email') }}"
-                                placeholder="nama@email.com"
-                                required autofocus
-                                class="input-field w-full rounded-xl px-4 py-2.5 pl-10 text-sm @error('email') border-red-500/50 @enderror"
-                            >
-                        </div>
-                        @error('email')
-                            <p class="text-red-400 text-xs mt-1"><i class="fa fa-triangle-exclamation mr-1"></i>{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    {{-- Password --}}
-                    <div>
-                        <label class="block text-sm font-medium text-slate-300 mb-1.5">
-                            Password
-                        </label>
-                        <div class="relative">
-                            <i class="fa fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
-                            <input
-                                type="password"
-                                name="password"
-                                id="passwordInput"
-                                placeholder="••••••••"
-                                required
-                                class="input-field w-full rounded-xl px-4 py-2.5 pl-10 pr-10 text-sm @error('password') border-red-500/50 @enderror"
-                            >
-                            <button type="button" onclick="togglePassword()"
-                                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition text-sm">
-                                <i class="fa fa-eye" id="eyeIcon"></i>
-                            </button>
-                        </div>
-                        @error('password')
-                            <p class="text-red-400 text-xs mt-1"><i class="fa fa-triangle-exclamation mr-1"></i>{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    {{-- Remember me --}}
-                    <div class="flex items-center">
-                        <input type="checkbox" name="remember" id="remember"
-                            class="w-4 h-4 rounded border-white/20 bg-white/5 text-purple-500 focus:ring-purple-500/50">
-                        <label for="remember" class="ml-2 text-sm text-slate-400">Ingat saya</label>
-                    </div>
-
-                    {{-- Submit --}}
-                    <button type="submit" class="btn-primary w-full py-2.5 rounded-xl font-semibold text-white text-sm tracking-wide">
-                        <i class="fa fa-right-to-bracket mr-2"></i>Masuk
-                    </button>
-                </form>
-
-                {{-- Divider --}}
-                <div class="flex items-center gap-3 my-5">
-                    <div class="flex-1 h-px bg-white/10"></div>
-                    <span class="text-slate-600 text-xs">atau</span>
-                    <div class="flex-1 h-px bg-white/10"></div>
-                </div>
-
-                {{-- Register link --}}
-                <p class="text-center text-sm text-slate-400">
-                    Belum punya akun?
-                    <a href="{{ route('register') }}" class="text-purple-400 hover:text-purple-300 font-medium transition">
-                        Daftar sekarang
-                    </a>
-                </p>
-            </div>
-        </div>
-    </main>
-
-    <script>
-        function togglePassword() {
-            const input = document.getElementById('passwordInput');
-            const icon  = document.getElementById('eyeIcon');
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.classList.replace('fa-eye', 'fa-eye-slash');
-            } else {
-                input.type = 'password';
-                icon.classList.replace('fa-eye-slash', 'fa-eye');
-            }
-        }
-    </script>
+<script>
+function togglePassword() {
+    const input = document.getElementById('passwordInput');
+    const icon  = document.getElementById('eyeIcon');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.replace('bi-eye', 'bi-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.replace('bi-eye-slash', 'bi-eye');
+    }
+}
+</script>
 </body>
 </html>

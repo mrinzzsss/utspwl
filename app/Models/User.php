@@ -13,8 +13,9 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
-        'role',
         'password',
+        'role',
+        'player_id',
     ];
 
     protected $hidden = [
@@ -22,21 +23,35 @@ class User extends Authenticatable
         'remember_token',
     ];
 
-    protected $casts = [
-        'email_verified_at' => 'datetime',
-        'password'          => 'hashed',
-    ];
-
-    public function isAdmin(): bool
+    protected function casts(): array
     {
-        return $this->role === 'admin';
+        return [
+            'password' => 'hashed',
+        ];
     }
+
+    // ── Role helpers ─────────────────────────────
+
+    public function isManajemen(): bool
+    {
+        return $this->role === 'manajemen';
+    }
+
     public function isWasit(): bool
     {
         return $this->role === 'wasit';
     }
-    public function isManajemen(): bool
+
+    public function isPlayer(): bool
     {
-        return $this->role === 'manajemen';
+        return $this->role === 'player';
+    }
+
+    // ── Relasi ───────────────────────────────────
+
+    /** User dengan role player ditautkan ke data pemain */
+    public function player()
+    {
+        return $this->belongsTo(Player::class);
     }
 }

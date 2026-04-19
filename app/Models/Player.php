@@ -2,35 +2,35 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Model;
 
 class Player extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'tournament_id',
-        'nama_tim',
-        'logo_tim',
-        'ign',
-        'nama_asli',
-        'role_game',
+        'team_id',
+        'name',
+        'role',
+        'game_id',
+        'nationality',
+        'birth_date',
     ];
 
-    // ─── Relationships ───────────────────────────────────────────
+    protected $casts = [
+        'birth_date' => 'date',
+    ];
 
-    /** Player ini ikut tournament mana */
-    public function tournament(): BelongsTo
+    // ── Relasi ───────────────────────────────────
+
+    public function team()
     {
-        return $this->belongsTo(Tournament::class, 'tournament_id');
+        return $this->belongsTo(Team::class);
     }
 
-    /** Match-match di mana player ini jadi MVP */
-    public function mvpMatches(): HasMany
+    public function user()
     {
-        return $this->hasMany(Matchs::class, 'mvp_id');
+        return $this->hasOne(User::class);
     }
 }
